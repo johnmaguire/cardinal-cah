@@ -4,6 +4,8 @@ from random import shuffle
 from threading import Lock
 from collections import deque
 
+DEFAULT_HAND_SIZE = 10
+
 
 class InvalidMoveError(Exception):
     pass
@@ -38,7 +40,7 @@ class Player(object):
         self.name = name
         self.game = game
 
-    def draw(self, hand_size=10):
+    def draw(self, hand_size=DEFAULT_HAND_SIZE):
         """Draws cards from the white deck until hand is full.
 
         Keyword arguments:
@@ -73,8 +75,8 @@ class Player(object):
         self.game.choose(self, choices)
 
         # Remove the cards from the player's hand
-        for idx in cards:
-            self.hand.pop(int(idx))
+        for choice in choices:
+            self.hand.remove(choice)
 
         # Draw cards for the player
         self.draw()
