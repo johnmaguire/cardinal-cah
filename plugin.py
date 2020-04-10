@@ -23,7 +23,7 @@ class CAHPlugin(object):
     @help("Joins or starts a new Cardinals Against Humanity game")
     @help(".play")
     def play(self, cardinal, user, channel, msg):
-        nick = user.group(1)
+        nick = user.nick
 
         # Check if CAH is allowed here
         if channel not in self.channels:
@@ -91,7 +91,7 @@ class CAHPlugin(object):
     @help(".choose <choice [choice, [..]]>")
     def choose(self, cardinal, user, channel, msg):
         """Play a card or card combination"""
-        nick = user.group(1)
+        nick = user.nick
 
         # Get the choices
         choices = msg.strip().split(' ')[1:]
@@ -187,7 +187,7 @@ class CAHPlugin(object):
     def _left(self, cardinal, leaver, channel, _):
         """Remove players who part from the game"""
         try:
-            self.remove_player(channel, leaver.group(1))
+            self.remove_player(channel, leaver.nick)
         except KeyError:
             return
 
@@ -196,7 +196,7 @@ class CAHPlugin(object):
         """Remove players who quit from the game"""
         for channel, _ in self.games.items():
             try:
-                self.remove_player(channel, quitter.group(1))
+                self.remove_player(channel, quitter.nick)
             except KeyError:
                 return
 
