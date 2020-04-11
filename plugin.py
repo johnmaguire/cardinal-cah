@@ -21,7 +21,7 @@ class CAHPlugin(object):
 
     @command('play')
     @help("Joins or starts a new Cardinals Against Humanity game")
-    @help(".play")
+    @help("Syntax: .play")
     def play(self, cardinal, user, channel, msg):
         nick = user.nick
 
@@ -62,9 +62,9 @@ class CAHPlugin(object):
             player for player in game.players
         ]))
 
-    @command('ready')
+    @command(['ready', 'start'])
     @help("Begin the CAH game!")
-    @help('.ready')
+    @help('Syntax: .ready/.start')
     def ready(self, cardinal, user, channel, msg):
         try:
             game = self.games[channel]
@@ -86,9 +86,9 @@ class CAHPlugin(object):
         self.show_black_card(channel)
         self.show_hands(channel)
 
-    @command('choose')
+    @command(['choose', 'c'])
     @help("Choose cards to play")
-    @help(".choose <choice [choice, [..]]>")
+    @help("Syntax: .choose <choice [choice, [..]]>")
     def choose(self, cardinal, user, channel, msg):
         """Play a card or card combination"""
         nick = user.nick
@@ -125,10 +125,11 @@ class CAHPlugin(object):
             # Make player choice
             try:
                 player.choose(choices)
-            except InvalidChoiceError:
-                cardinal.sendMsg(channel, "You must choose %d cards." %
-                                          game.required_cards)
+            except InvalidChoiceError as e:
+                cardinal.sendMsg(channel, e.message)
                 return
+            except InvalidMoveError:
+                pass
 
             # Check if game transitioned
             if game.state == Game.WAITING_PICK:
@@ -160,6 +161,8 @@ class CAHPlugin(object):
             except InvalidPickError:
                 cardinal.sendMsg(channel, "Invalid pick. Please try again!")
                 return
+            except InvalidMoveError:
+                pass
 
             cardinal.sendMsg(game_channel,
                              "%s won the round with '%s' Congrats! You "
@@ -173,6 +176,12 @@ class CAHPlugin(object):
 
         if game.state == Game.OVER:
             self.finish_game(game_channel)
+
+    @command('score')
+    @help("Give Cards Against Humanity score")
+    @help("Syntax: .score")
+    def score(self, cardinal, channel, msg):
+        self.send_scores(channel)
 
     @event('irc.kick')
     def _kicked(self, cardinal, kicker, channel, kicked, _):
@@ -267,18 +276,13 @@ class CAHPlugin(object):
 
         for idx, choice in enumerate(game.choices):
             # Send the option
-            self.cardinal.sendMsg(channel, "  %d: %s" %
+            self.cardinal.sendMsg(channel, "[%d] %s" %
                                            (idx, choice[1]))
 
         self.cardinal.sendMsg(channel, "%s: Make your choice with .choose!" %
                                        game.picker.name)
 
-    def finish_game(self, channel):
-        game = self.games[channel]
-
-        self.cardinal.sendMsg(channel, "Good game! You may use .play to start "
-                                       "a new one.")
-
+    def send_scores(self, channel):
         standing = 0
         for name, player in game.scores:
             standing += 1
@@ -286,11 +290,17 @@ class CAHPlugin(object):
                                   "%d. %s - %d points" %
                                   (standing, name, player.points))
 
+    def finish_game(self, channel):
+        game = self.games[channel]
+
+        self.send_scores(channel)
+
         # Close the game cleanly
         game.close()
         del self.games[channel]
 
-        return
+        self.cardinal.sendMsg(channel, "Good game! You may use .play to start "
+                                       "a new one.")
 
     def close(self, cardinal):
         # TODO: Kill off running timers

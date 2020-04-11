@@ -67,7 +67,7 @@ class Player(object):
             for idx in cards:
                 choices.append(self.hand[int(idx)])
         except Exception:
-            raise InvalidChoiceError("Choice %d was invalid" % idx)
+            raise InvalidChoiceError("[{}] isn't a valid choice".format(idx))
 
         choices = tuple(choices)
 
@@ -288,14 +288,10 @@ class Game(object):
     def choose(self, player, cards):
         """Chooses cards from a player's hand to play.
 
-        If the choices are made successfully, new cards will be drawn and the
-        new hand will be returned.
-
         Raises:
           InvalidMoveError -- If this is the wrong time to play.
+          InvalidChoiceError -- If the choice of cards isn't valid.
           ValueError -- If the wrong number of cards are played.
-        Returns:
-          list -- A copy of the player's hand.
         """
         # Wrong time to play a card
         if self.state != self.WAITING_CHOICES:
@@ -303,8 +299,8 @@ class Game(object):
 
         # Not the right amount of cards
         if len(cards) != self.required_cards:
-            raise ValueError("%d cards required, %d chosen" %
-                             (self.required_cards, len(cards)))
+            raise InvalidChoiceError("You must choose {} cards"
+                                     .format(self.required_cards))
 
         # Fill in blanks if there are any
         choice = ''
