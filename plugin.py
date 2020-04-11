@@ -284,6 +284,8 @@ class CAHPlugin(object):
                                        game.picker.name)
 
     def send_scores(self, channel):
+        game = self.games[channel]
+
         standing = 0
         for name, player in game.scores:
             standing += 1
