@@ -97,14 +97,15 @@ class CAHPlugin(object):
         choices = msg.strip().split(' ')[1:]
 
         # If only one game is running, let them use PM
+        game_channel = channel
         if nick == channel and len(self.games) == 1:
-            channel = self.games.keys()[0]
+            game_channel = self.games.keys()[0]
         elif nick == channel:
             cardinal.sendMsg(channel, "Use .choose in the game channel!")
             return
 
         try:
-            game = self.games[channel]
+            game = self.games[game_channel]
         # Ignore invalid channel
         except KeyError:
             return
@@ -115,11 +116,9 @@ class CAHPlugin(object):
         except KeyError:
             return
 
-        if game.state == Game.STARTING:
-            return
-
-        if player.state == Player.WAITING:
-            cardinal.sendMsg(channel, "Wait your turn please.")
+        if (game.state == Game.STARTING or \
+                player.state == Player.WAITING):
+            cardinal.sendMsg(channel, "Wait for your turn please.")
             return
 
         if player.state == Player.CHOOSING:
@@ -133,14 +132,14 @@ class CAHPlugin(object):
 
             # Check if game transitioned
             if game.state == Game.WAITING_PICK:
-                self.show_choices(channel)
+                self.show_choices(game_channel)
             else:
                 choosing = []
                 for _, p in game.players.items():
                     if p.state == Player.CHOOSING:
                         choosing.append(p.name)
 
-                cardinal.sendMsg(channel,
+                cardinal.sendMsg(game_channel,
                                  "%s has chosen. Still choosing: %s" %
                                  (player.name, ', '.join(choosing)))
 
@@ -149,7 +148,7 @@ class CAHPlugin(object):
             if len(choices) > 1:
                 cardinal.sendMsg(
                     channel,
-                    "You're picking a winner, so you can only make one choice."
+                    "You may only pick one winner."
                 )
                 return
 
@@ -159,21 +158,21 @@ class CAHPlugin(object):
                 winner = win[0]
                 card = win[1]
             except InvalidPickError:
-                cardinal.sendMsg(channel, "Please pick one of the options.")
+                cardinal.sendMsg(channel, "Invalid pick. Please try again!")
                 return
 
-            cardinal.sendMsg(channel,
+            cardinal.sendMsg(game_channel,
                              "%s won the round with '%s' Congrats! You "
                              "have %d point(s)." % (winner.name, card,
                                                     winner.points))
 
             # Check if game transitioned, and show new choices
             if game.state == Game.WAITING_CHOICES:
-                self.show_black_card(channel)
-                self.show_hands(channel)
+                self.show_black_card(game_channel)
+                self.show_hands(game_channel)
 
         if game.state == Game.OVER:
-            self.finish_game(channel)
+            self.finish_game(game_channel)
 
     @event('irc.kick')
     def _kicked(self, cardinal, kicker, channel, kicked, _):
