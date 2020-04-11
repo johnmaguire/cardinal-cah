@@ -257,9 +257,9 @@ class CAHPlugin(object):
             self.cardinal.sendMsg(nick, "Hand: %s" % ' '.join(hand))
 
             # Prompt (black card)
-            self.cardinal.sendMsg(nick, "Black card: %s. %s is picking." %
+            self.cardinal.sendMsg(nick, "Black card: %s | Player picking: %s" %
                                         (game.black_card.replace('%s', '____'),
-                                         self.game.picker.name))
+                                         game.picker.name))
 
     def show_black_card(self, channel):
         game = self.games[channel]
