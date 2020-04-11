@@ -66,14 +66,14 @@ What gets better with age?
 I never truly understood %s until I encountered %s.
 Rumor has it that Vladimir Putin's favorite delicacy is %s stuffed with %s.
 Lifetime presents %s, the story of %s.
-Make a haiku.
+# Make a haiku.
 In M. Night Shyamalan's new movie, Bruce Willis discovers that %s had really been %s all along.
 %s is a slippery slope that leads to %s.
 In a world ravaged by %s, our only solace is %s.
 That's right, I killed %s. How, you ask? %s.
 When I was tripping on acid, %s turned into %s.
 %s + %s = %s.
-What's the next superhero/sidekick duo?
+# What's the next superhero/sidekick duo?
 Dear Abby, I'm having some trouble with %s and would like your advice.
 After the earthquake, Sean Penn brought %s to the people of Haiti.
 In L.A. County Jail, word is you can trade 200 cigarettes for %s.
