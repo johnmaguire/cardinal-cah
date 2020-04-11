@@ -229,9 +229,25 @@ class Game(object):
           KeyError -- If the player doesn't exist.
         """
         name = str(name)
+        player = self.players[name]
 
-        self.play_deque.remove(self.players[name])
+        # remove the player from the list of players and play order
         del self.players[name]
+        self.play_deque.remove(self.players[name])
+
+        # put their cards back into the deck
+        while player.hand:
+            card = player.hand.pop()
+            self.deck['white'].append(card)
+
+        # and remove their chosen card if they have one
+        for idx, choice in enumerate(self.choices):
+            if choice[0] == player:
+                del self.choices[idx]
+                self.deck['white'].append(choice)
+
+        # shuffle the deck in case they put cards back
+        shuffle(self.deck['white'])
 
         # Check if we don't have enough players now
         if self.state != self.STARTING and len(self.players) < 3:
@@ -245,6 +261,11 @@ class Game(object):
 
         # If this player was supposed to pick, skip the round
         elif self.state != self.STARTING and self.picker.name == name:
+            # give players their choices back
+            for choice in self.choices:
+                player, card = choice
+                player.hand.append(card)
+
             self._prepare_round()
 
     def _prepare_picks(self):
