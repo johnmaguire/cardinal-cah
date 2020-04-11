@@ -122,6 +122,7 @@ class Game(object):
 
         with open(filename, 'r') as deck:
             cards = deck.read().strip().split("\n")
+
         shuffle(cards)
 
         return cards
@@ -152,6 +153,11 @@ class Game(object):
         draws a new black card, and sets the required number of chosen cards,
         and sets the game state.
         """
+        # if the game is starting, shuffle the decks
+        if self.state == self.STARTING:
+            for _, deck in self.deck.items():
+                shuffle(deck)
+
         for _, player in self.players.items():
             # Check if a player won
             if player.points == self.max_points:
