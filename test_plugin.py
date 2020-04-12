@@ -28,10 +28,10 @@ class TestPlugin(object):
         self.mock_cardinal.nickname = 'Cardinal'
 
         self.plugin = CAHPlugin(self.mock_cardinal,
-                                [self.channel])
+                                {'channel': '#cah'})
 
-        self.plugin.games[self.channel] = Game()
-        self.plugin.games[self.channel].add_player(self.player)
+        self.plugin.game = Game()
+        self.plugin.game.add_player(self.player)
 
     def test_choose_waiting_in_pm(self):
         # when command sent in pm, respond in pm
@@ -42,7 +42,7 @@ class TestPlugin(object):
 
         self.mock_cardinal.sendMsg.assert_called_once_with(
             self.player,
-            "Wait for your turn please.",
+            "Please wait for your turn.",
         )
 
     def test_choose_waiting_in_channel(self):
@@ -54,7 +54,7 @@ class TestPlugin(object):
 
         self.mock_cardinal.sendMsg.assert_called_once_with(
             self.channel,
-            "Wait for your turn please.",
+            "Please wait for your turn.",
         )
 
 

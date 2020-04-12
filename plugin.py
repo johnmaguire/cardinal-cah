@@ -13,13 +13,9 @@ class CAHPlugin(object):
         self.logger = logging.getLogger(__name__)
         self.cardinal = cardinal
 
-        self.games = {}
-        self.channels = []
+        self.channel = config['channel']
 
-        if 'channels' not in config:
-            return
-
-        self.channels = [str(channel) for channel in config['channels']]
+        self.game = None
 
     @command('play')
     @help("Joins or starts a new Cardinals Against Humanity game")
@@ -28,30 +24,28 @@ class CAHPlugin(object):
         nick = user.nick
 
         # Check if CAH is allowed here
-        if channel not in self.channels:
+        if channel != self.channel:
             return cardinal.sendMsg(nick,
-                                    "Sorry, CAH isn't allowed here. Try "
-                                    "one of these channels instead: {}"
-                                    .format(' '.join(self.channels)))
+                                    "Sorry, CAH isn't allowed here. Please "
+                                    "join {} to start a game."
+                                    .format(self.channel))
 
         # Attempt to get the game
-        try:
-            game = self.games[channel]
-        # Create a new game and add the player to it
-        except KeyError:
-            self.games[channel] = Game()
-            self.games[channel].add_player(nick)
+        if not self.game:
+            self.game = Game()
+            self.game.add_player(nick)
 
             cardinal.sendMsg(
-                channel, "A new game of Cardinals Against Humanity has been "
-                         "created. You've automatically been joined. Other "
+                channel, "A new game of Cardinal Against Humanity has been "
+                         "created. You've been joined automatically. Other "
                          "players can use .play to join.")
             cardinal.sendMsg(
-                channel, "You can use .ready to start the game. Have fun!")
+                channel, "When you're ready to start the game, just say "
+                         ".ready and we'll begin. Have fun!")
             return
 
         try:
-            game.add_player(nick)
+            self.game.add_player(nick)
         except InvalidMoveError:
             cardinal.sendMsg(channel, "The game is already in progress.")
             return
@@ -61,32 +55,38 @@ class CAHPlugin(object):
 
         cardinal.sendMsg(channel, "{} has joined the game.".format(nick))
         cardinal.sendMsg(channel, "Players: {}".format(', '.join([
-            player for player in game.players
+            player for player in self.game.players
         ])))
 
     @command(['ready', 'start'])
     @help("Begin the CAH game!")
     @help('Syntax: .ready/.start')
     def ready(self, cardinal, user, channel, msg):
+        if channel != self.channel:
+            cardinal.sendMsg(channel, "Please start the game in {}."
+                                      .format(self.channel))
+            return
+
+        if not self.game:
+            cardinal.sendMsg(channel, "No game in progress. Say .play to "
+                                      "start one!")
+            return
+
         try:
-            game = self.games[channel]
-            game.ready()
+            self.game.ready()
         except InvalidMoveError:
             cardinal.sendMsg(channel, "The game has already begun.")
             return
-        except KeyError:
-            cardinal.sendMsg(channel, "No game in progress. "
-                                      "Type .cah to start one!")
         except NotEnoughPlayersError:
             cardinal.sendMsg(channel, "Not enough players to begin the game!")
             return
 
         cardinal.sendMsg(channel, "The game has begun! We will be playing "
-                                  "until someone earns {} points.".format(
-                                      game.max_points))
+                                  "until someone earns {} points."
+                                  .format(self.game.max_points))
 
-        self.show_black_card(channel)
-        self.show_hands(channel)
+        self.show_black_card()
+        self.show_hands()
 
     @command(['choose', 'c'])
     @help("Choose cards to play")
@@ -98,29 +98,26 @@ class CAHPlugin(object):
         # Get the choices
         choices = msg.strip().split(' ')[1:]
 
-        # If only one game is running, let them use PM
-        game_channel = channel
-        if nick == channel and len(self.games) == 1:
-            game_channel = self.games.keys()[0]
-        elif nick == channel:
-            cardinal.sendMsg(channel, "Use .choose in the game channel!")
+        if not self.game:
+            if channel == self.channel:
+                message = "No game in progress. Start one with .play!"
+            else:
+                message = "No game in progress. Start one in {}.".format(
+                    self.channel)
+
+            cardinal.sendMsg(channel, message)
             return
 
         try:
-            game = self.games[game_channel]
-        # Ignore invalid channel
-        except KeyError:
-            return
-
-        try:
-            player = game.players[nick]
+            player = self.game.players[nick]
         # Ignore invalid player
         except KeyError:
-            return
+            cardinal.sendMsg(channel, "It doesn't look like you're playing. "
+                                      "Join in next time!")
 
-        if (game.state == Game.STARTING or
+        if (self.game.state == Game.STARTING or
                 player.state == Player.WAITING):
-            cardinal.sendMsg(channel, "Wait for your turn please.")
+            cardinal.sendMsg(channel, "Please wait for your turn.")
             return
 
         if player.state == Player.CHOOSING:
@@ -134,15 +131,15 @@ class CAHPlugin(object):
                 pass
 
             # Check if game transitioned
-            if game.state == Game.WAITING_PICK:
-                self.show_choices(game_channel)
+            if self.game.state == Game.WAITING_PICK:
+                self.show_choices()
             else:
                 choosing = []
-                for _, p in game.players.items():
+                for _, p in self.game.players.items():
                     if p.state == Player.CHOOSING:
                         choosing.append(p.name)
 
-                cardinal.sendMsg(game_channel,
+                cardinal.sendMsg(self.channel,
                                  "{} has chosen. Still choosing: {}"
                                  .format(player.name, ', '.join(choosing)))
 
@@ -157,34 +154,32 @@ class CAHPlugin(object):
 
             # Make player pick
             try:
-                win = game.pick(choices[0])
-                winner = win[0]
-                card = win[1]
+                player, card = self.game.pick(choices[0])
             except InvalidPickError:
                 cardinal.sendMsg(channel, "Invalid pick. Please try again!")
                 return
             except InvalidMoveError:
                 pass
 
-            cardinal.sendMsg(game_channel,
+            cardinal.sendMsg(self.channel,
                              "{} won the round with '{}' Congrats! You "
-                             "have {} point(s).".format(winner.name,
+                             "have {} point(s).".format(player.name,
                                                         card,
-                                                        winner.points))
+                                                        player.points))
 
             # Check if game transitioned, and show new choices
-            if game.state == Game.WAITING_CHOICES:
-                self.show_black_card(game_channel)
-                self.show_hands(game_channel)
+            if self.game.state == Game.WAITING_CHOICES:
+                self.show_black_card()
+                self.show_hands()
 
-        if game.state == Game.OVER:
-            self.finish_game(game_channel)
+        if self.game.state == Game.OVER:
+            self.finish_game()
 
     @command('score')
     @help("Give Cards Against Humanity score")
     @help("Syntax: .score")
     def score(self, cardinal, channel, msg):
-        self.send_scores(channel)
+        self.send_scores()
 
     @event('irc.kick')
     def _kicked(self, cardinal, kicker, channel, kicked, _):
@@ -211,37 +206,48 @@ class CAHPlugin(object):
             except KeyError:
                 return
 
-    def remove_player(self, channel, player):
+    def remove_player(self, player):
         """Removes a player from a channel's game.
 
         Raises:
           KeyError -- If a game or player doesn't exist.
         """
-        game = self.games[channel]
+        if not self.game:
+            return
 
-        initial_state = game.state
+        initial_state = self.game.state
 
-        self.games[channel].remove_player(player)
-        self.cardinal.sendMsg(channel, "{} left the game!".format(player))
+        self.game.remove_player(player)
+        self.cardinal.sendMsg(self.channel, "{} left the game!".format(player))
 
+        # if game went from waiting pick to waiting choices, then this player
+        # was the card czar.
         if (initial_state == Game.WAITING_PICK and
-                game.state == Game.WAITING_CHOICES):
-            self.cardinal.sendMsg(channel, "Round skipped.")
-            self.show_black_card(channel)
-            self.show_hands(channel)
+                self.game.state == Game.WAITING_CHOICES):
+            self.cardinal.sendMsg(self.channel,
+                                  "Round skipped since {} was supposed to "
+                                  "pick a winner.".format(player))
 
+            self.show_black_card()
+            self.show_hands()
+
+        # if this was the last player we were waiting on for a choice, then
+        # move on to having the card czar pick
         elif (initial_state == Game.WAITING_CHOICES and
-              game.state == Game.WAITING_PICK):
-            self.show_choices(channel)
+                self.game.state == Game.WAITING_PICK):
+            self.show_choices()
 
-        elif game.state == Game.OVER:
-            self.cardinal.sendMsg(channel, "The game has ended by default.")
-            self.finish_game(channel)
+        # otherwise, if we ran out of players, end the game...
+        elif self.game.state == Game.OVER:
+            self.cardinal.sendMsg(self.channel,
+                                  "The game has ended due to lack of players.")
+            self.finish_game()
 
-    def show_hands(self, channel):
-        game = self.games[channel]
+    def show_hands(self):
+        if not self.game:
+            return
 
-        for nick, player in game.players.items():
+        for nick, player in self.game.players.items():
             if player.state == Player.WAITING:
                 self.cardinal.sendMsg(nick, "You are picking this round.")
                 continue
@@ -249,11 +255,15 @@ class CAHPlugin(object):
             hand = []
 
             # Instructions
-            syntax = ['<choice>' for _ in xrange(game.required_cards)]
+            syntax = ['<choice>' for _ in range(self.game.required_cards)]
             syntax.insert(0, '.choose')
             self.cardinal.sendMsg(nick,
-                                  "Use {} to make your choice(s)."
-                                  .format(' '.join(syntax)))
+                                  "Use {} to make your {}.".format(
+                                      ' '.join(syntax),
+                                      ('choices'
+                                       if len(syntax) > 2
+                                       else 'choice'),
+                                  ))
 
             # Hand
             for idx, card in enumerate(player.hand):
@@ -264,66 +274,76 @@ class CAHPlugin(object):
             self.cardinal.sendMsg(nick,
                                   "Black card: {} | Player picking: {}"
                                   .format(
-                                        game.black_card.replace('%s', '____'),
-                                        game.picker.name,
+                                        self.game.black_card.replace(
+                                            '%s', '____'),
+                                        self.game.picker.name,
                                   ))
 
-    def show_black_card(self, channel):
-        game = self.games[channel]
+    def show_black_card(self):
+        if not self.game:
+            return
 
-        self.cardinal.sendMsg(channel,
+        self.cardinal.sendMsg(self.channel,
                               "Black card: {} | Player picking: {}"
                               .format(
-                                    game.black_card.replace('%s', '____'),
-                                    game.picker.name,
+                                    self.game.black_card.replace('%s', '____'),
+                                    self.game.picker.name,
                               ))
 
-    def show_choices(self, channel):
-        game = self.games[channel]
+    def show_choices(self):
+        if not self.game:
+            return
 
         # No blanks, show prompt
-        if '%s' not in game.black_card:
-            self.cardinal.sendMsg(channel, "{}".format(game.black_card))
+        if '%s' not in self.game.black_card:
+            self.cardinal.sendMsg(self.channel, self.game.black_card)
 
-        for idx, choice in enumerate(game.choices):
+        for idx, choice in enumerate(self.game.choices):
             # Send the option
-            self.cardinal.sendMsg(channel, "[{}] {}".format(idx, choice[1]))
+            self.cardinal.sendMsg(self.channel,
+                                  " [{}] {}".format(idx, choice[1]))
 
-        self.cardinal.sendMsg(channel,
+        self.cardinal.sendMsg(self.channel,
                               "{}: Make your choice with .choose!"
-                              .format(game.picker.name))
+                              .format(self.game.picker.name))
 
-    def send_scores(self, channel):
-        game = self.games[channel]
+    def send_scores(self):
+        if not self.game:
+            return
 
         standing = 0
-        for name, player in game.scores:
+        for name, player in self.game.scores:
             standing += 1
-            self.cardinal.sendMsg(channel,
+            self.cardinal.sendMsg(self.channel,
                                   "{}. {} - {} points"
                                   .format(standing, name, player.points))
 
-    def finish_game(self, channel):
+    def finish_game(self):
+        if not self.game:
+            return
+
+        # log but continue ending the game if scores fail to send
         try:
-            game = self.games[channel]
+            self.send_scores()
+        except Exception:
+            self.logger.exception("Failure sending scores")
+            self.cardinal.sendMsg(self.channel,
+                                  "I had an issue tallying up scores. :(")
 
-            self.send_scores(channel)
-
-            # Close the game cleanly
-            game.close()
+        # Close the game cleanly - still let a new game begin if this fails for
+        # some reason
+        try:
+            self.game.close()
         finally:
-            del self.games[channel]
+            self.game = None
 
-            self.cardinal.sendMsg(channel,
-                                  "Good game! You may use .play to start a "
-                                  "new one.")
+            self.cardinal.sendMsg(self.channel,
+                                  "Well played! You may use .play to start a "
+                                  "new game.")
 
     def close(self, cardinal):
-        # TODO: Kill off running timers
-
-        for channel in self.games:
-            self.games[channel].close()
-        self.games.clear()
+        if self.game:
+            self.game.close()
 
 
 def setup(cardinal, config):
