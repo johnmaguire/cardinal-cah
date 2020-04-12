@@ -29,8 +29,8 @@ class CAHPlugin(object):
         if channel not in self.channels:
             return cardinal.sendMsg(nick,
                                     "Sorry, CAH isn't allowed here. Try "
-                                    "one of these channels instead: %s" %
-                                    ' '.join(self.channels))
+                                    "one of these channels instead: {}"
+                                    .format(' '.join(self.channels)))
 
         # Attempt to get the game
         try:
@@ -57,10 +57,10 @@ class CAHPlugin(object):
             cardinal.sendMsg(channel, "You're already playing :)")
             return
 
-        cardinal.sendMsg(channel, "%s has joined the game." % nick)
-        cardinal.sendMsg(channel, "Players: %s" % ', '.join([
+        cardinal.sendMsg(channel, "{} has joined the game.".format(nick))
+        cardinal.sendMsg(channel, "Players: {}".format(', '.join([
             player for player in game.players
-        ]))
+        ])))
 
     @command(['ready', 'start'])
     @help("Begin the CAH game!")
@@ -80,8 +80,8 @@ class CAHPlugin(object):
             return
 
         cardinal.sendMsg(channel, "The game has begun! We will be playing "
-                                  "until someone earns %d points." %
-                                  game.max_points)
+                                  "until someone earns {} points.".format(
+                                      game.max_points))
 
         self.show_black_card(channel)
         self.show_hands(channel)
@@ -141,8 +141,8 @@ class CAHPlugin(object):
                         choosing.append(p.name)
 
                 cardinal.sendMsg(game_channel,
-                                 "%s has chosen. Still choosing: %s" %
-                                 (player.name, ', '.join(choosing)))
+                                 "{} has chosen. Still choosing: {}"
+                                 .format(player.name, ', '.join(choosing)))
 
         elif player.state == Player.PICKING:
             # Make sure they aren't flubbing the command
@@ -165,9 +165,10 @@ class CAHPlugin(object):
                 pass
 
             cardinal.sendMsg(game_channel,
-                             "%s won the round with '%s' Congrats! You "
-                             "have %d point(s)." % (winner.name, card,
-                                                    winner.points))
+                             "{} won the round with '{}' Congrats! You "
+                             "have {} point(s).".format(winner.name,
+                                                        card,
+                                                        winner.points))
 
             # Check if game transitioned, and show new choices
             if game.state == Game.WAITING_CHOICES:
@@ -219,7 +220,7 @@ class CAHPlugin(object):
         initial_state = game.state
 
         self.games[channel].remove_player(player)
-        self.cardinal.sendMsg(channel, "%s left the game!" % player)
+        self.cardinal.sendMsg(channel, "{} left the game!".format(player))
 
         if (initial_state == Game.WAITING_PICK and
                 game.state == Game.WAITING_CHOICES):
@@ -248,40 +249,47 @@ class CAHPlugin(object):
             # Instructions
             syntax = ['<choice>' for _ in xrange(game.required_cards)]
             syntax.insert(0, '.choose')
-            self.cardinal.sendMsg(nick, "Use %s to make your choice(s)." %
-                                        (' '.join(syntax)))
+            self.cardinal.sendMsg(nick,
+                                  "Use {} to make your choice(s)."
+                                  .format(' '.join(syntax)))
 
             # Hand
             for idx, card in enumerate(player.hand):
-                hand.append("[%d] %s" % (idx, card))
-            self.cardinal.sendMsg(nick, "Hand: %s" % ' '.join(hand))
+                hand.append("[{}] {}".format(idx, card))
+            self.cardinal.sendMsg(nick, "Hand: {}".format(' '.join(hand)))
 
             # Prompt (black card)
-            self.cardinal.sendMsg(nick, "Black card: %s | Player picking: %s" %
-                                        (game.black_card.replace('%s', '____'),
-                                         game.picker.name))
+            self.cardinal.sendMsg(nick,
+                                  "Black card: {} | Player picking: {}"
+                                  .format(
+                                        game.black_card.replace('%s', '____'),
+                                        game.picker.name,
+                                  ))
 
     def show_black_card(self, channel):
         game = self.games[channel]
 
-        self.cardinal.sendMsg(channel, "Black card: %s | Player picking: %s" %
-                                       (game.black_card.replace('%s', '____'),
-                                        game.picker.name))
+        self.cardinal.sendMsg(channel,
+                              "Black card: {} | Player picking: {}"
+                              .format(
+                                    game.black_card.replace('%s', '____'),
+                                    game.picker.name,
+                              ))
 
     def show_choices(self, channel):
         game = self.games[channel]
 
         # No blanks, show prompt
         if '%s' not in game.black_card:
-            self.cardinal.sendMsg(channel, "%s" % game.black_card)
+            self.cardinal.sendMsg(channel, "{}".format(game.black_card))
 
         for idx, choice in enumerate(game.choices):
             # Send the option
-            self.cardinal.sendMsg(channel, "[%d] %s" %
-                                           (idx, choice[1]))
+            self.cardinal.sendMsg(channel, "[{}] {}".format(idx, choice[1]))
 
-        self.cardinal.sendMsg(channel, "%s: Make your choice with .choose!" %
-                                       game.picker.name)
+        self.cardinal.sendMsg(channel,
+                              "{}: Make your choice with .choose!"
+                              .format(game.picker.name))
 
     def send_scores(self, channel):
         game = self.games[channel]
@@ -290,20 +298,22 @@ class CAHPlugin(object):
         for name, player in game.scores:
             standing += 1
             self.cardinal.sendMsg(channel,
-                                  "%d. %s - %d points" %
-                                  (standing, name, player.points))
+                                  "{}. {} - {} points"
+                                  .format(standing, name, player.points))
 
     def finish_game(self, channel):
-        game = self.games[channel]
+        try:
+            game = self.games[channel]
 
-        self.send_scores(channel)
+            self.send_scores(channel)
 
-        # Close the game cleanly
-        game.close()
-        del self.games[channel]
+            # Close the game cleanly
+            game.close()
+        finally:
+            del self.games[channel]
 
-        self.cardinal.sendMsg(channel, "Good game! You may use .play to start "
-                                       "a new one.")
+            self.cardinal.sendMsg(channel, "Good game! You may use .play to start "
+                                           "a new one.")
 
     def close(self, cardinal):
         # TODO: Kill off running timers

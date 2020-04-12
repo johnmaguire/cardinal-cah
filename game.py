@@ -117,7 +117,7 @@ class Game(object):
         """Loads a deck by name (color)."""
         filename = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
-            "%s.txt" % name
+            "{}.txt".format(name)
         )
 
         with open(filename, 'r') as deck:
@@ -218,7 +218,7 @@ class Game(object):
             raise InvalidMoveError
 
         if name in self.players:
-            raise PlayerExistsError("%s is already playing" % name)
+            raise PlayerExistsError("{} is already playing".format(name))
 
         player = Player(name, self)
         self.players[name] = player
@@ -304,7 +304,7 @@ class Game(object):
         try:
             pick = self.choices[int(choice)]
         except IndexError:
-            raise InvalidPickError("%d wasn't an option" % choice)
+            raise InvalidPickError("{} wasn't an option".format(choice))
 
         # Give the winner points
         pick[0].points += 1
