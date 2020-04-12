@@ -123,12 +123,17 @@ class Game(object):
         with open(filename, 'r') as deck:
             cards = deck.read().strip().split("\n")
 
-        # remove commented out cards
+        # remove duplicate cards
+        cards = list(set(cards))
+
         for card in cards:
-            if card[:1] == '#':
+            # remove blank lines
+            if not card:
                 cards.remove(card)
 
-        shuffle(cards)
+            # remove commented out cards
+            if card[:1] == '#':
+                cards.remove(card)
 
         return cards
 
