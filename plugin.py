@@ -66,13 +66,13 @@ class CAHPlugin(object):
     @help('Syntax: .ready/.start')
     def ready(self, cardinal, user, channel, msg):
         if channel != self.channel:
-            cardinal.sendMsg(channel, "Please start the game in {}."
+            cardinal.sendMsg(channel, "Please start the game in {}!"
                                       .format(self.channel))
             return
 
         if not self.game:
-            cardinal.sendMsg(channel, "No game in progress. Say .play to "
-                                      "start one!")
+            cardinal.sendMsg(channel, "No game in progress. Start one with "
+                                      ".play!")
             return
 
         try:
@@ -181,7 +181,17 @@ class CAHPlugin(object):
     @command('score')
     @help("Give Cards Against Humanity score")
     @help("Syntax: .score")
-    def score(self, cardinal, channel, msg):
+    def score(self, cardinal, user, channel, msg):
+        if channel != self.channel:
+            cardinal.sendMsg(channel, "Please check the score in {}!"
+                                      .format(self.channel))
+            return
+
+        if not self.game:
+            cardinal.sendMsg(channel, "No game in progress. Start one with "
+                                      ".play!")
+            return
+
         self.send_scores()
 
     @event('irc.kick')
