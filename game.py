@@ -150,6 +150,9 @@ class Game(object):
         if len(self.players) < 3:
             raise NotEnoughPlayersError
 
+        # randomize play order
+        shuffle(self.play_deque)
+
         self._prepare_round()
 
         return
@@ -230,7 +233,6 @@ class Game(object):
 
         # Add player to the play queue and re-shuffle it
         self.play_deque.append(player)
-        shuffle(self.play_deque)
 
     def remove_player(self, name):
         """Removes a player from the game.
