@@ -234,11 +234,10 @@ class CAHPlugin(object):
     @event('irc.quit')
     def _quit(self, cardinal, quitter, _):
         """Remove players who quit from the game"""
-        for channel, _ in self.games.items():
-            try:
-                self.remove_player(quitter.nick)
-            except KeyError:
-                return
+        try:
+            self.remove_player(quitter.nick)
+        except KeyError:
+            return
 
     def remove_player(self, player):
         """Removes a player from a channel's game.
