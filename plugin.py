@@ -24,11 +24,9 @@ class CAHPlugin(object):
     @help("Joins or starts a new Cardinals Against Humanity game")
     @help("Syntax: .play [max points]")
     def play(self, cardinal, user, channel, msg):
-        nick = user.nick
-
         # Check if CAH is allowed here
         if channel != self.channel:
-            return cardinal.sendMsg(nick,
+            return cardinal.sendMsg(channel,
                                     "Sorry, CAH isn't allowed here. Please "
                                     "join {} to start a game."
                                     .format(self.channel))
@@ -41,8 +39,14 @@ class CAHPlugin(object):
             except Exception:
                 max_points = 5
 
+            if max_points < 5 or max_points > 10:
+                cardinal.sendMsg(channel, "Game can be played up to a minimum "
+                                          "of 5 points and a maximum of 10 "
+                                          "points.")
+                return
+
             self.game = game.Game(max_points)
-            self.game.add_player(nick)
+            self.game.add_player(user.nick)
 
             cardinal.sendMsg(
                 channel, "A new game of Cardinal Against Humanity has been "
@@ -64,7 +68,7 @@ class CAHPlugin(object):
             return
 
         try:
-            self.game.add_player(nick)
+            self.game.add_player(user.nick)
         except game.InvalidMoveError:
             cardinal.sendMsg(channel, "The game is already in progress.")
             return
@@ -72,7 +76,7 @@ class CAHPlugin(object):
             cardinal.sendMsg(channel, "You're already playing :)")
             return
 
-        cardinal.sendMsg(channel, "{} has joined the game.".format(nick))
+        cardinal.sendMsg(channel, "{} has joined the game.".format(user.nick))
         cardinal.sendMsg(channel, "Players: {}".format(', '.join([
             player for player in self.game.players
         ])))
