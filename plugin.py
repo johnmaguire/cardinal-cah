@@ -22,7 +22,7 @@ class CAHPlugin(object):
 
     @command('play')
     @help("Joins or starts a new Cardinals Against Humanity game")
-    @help("Syntax: .play")
+    @help("Syntax: .play [max points]")
     def play(self, cardinal, user, channel, msg):
         nick = user.nick
 
@@ -35,7 +35,13 @@ class CAHPlugin(object):
 
         # Attempt to get the game
         if not self.game:
-            self.game = game.Game()
+            msg_parts = msg.split(' ')
+            try:
+                max_points = int(msg_parts[1])
+            except Exception:
+                max_points = 5
+
+            self.game = game.Game(max_points)
             self.game.add_player(nick)
 
             cardinal.sendMsg(
@@ -43,8 +49,18 @@ class CAHPlugin(object):
                          "created. You've been joined automatically. Other "
                          "players can use .play to join.")
             cardinal.sendMsg(
+                channel, "Each round, a prompt will be given. All players "
+                         "except for the judge of that round will choose a "
+                         "card or multiple cards to play from their hand, "
+                         "depending on the prompt.")
+            cardinal.sendMsg(
+                channel, "Once all players have made their choices, the judge "
+                         "will pick their favorite. The game will end once a "
+                         "player reaches {} points or there are no cards "
+                         "left.".format(self.game.max_points))
+            cardinal.sendMsg(
                 channel, "When you're ready to start the game, just say "
-                         ".ready and we'll begin. Have fun!")
+                         ".ready and we'll begin. Have fun and good luck!")
             return
 
         try:
@@ -85,7 +101,8 @@ class CAHPlugin(object):
             return
 
         cardinal.sendMsg(channel, "The game has begun! We will be playing "
-                                  "until someone earns {} points."
+                                  "until someone earns {} points or we run "
+                                  "out of cards."
                                   .format(self.game.max_points))
 
         self.show_black_card()
@@ -325,6 +342,10 @@ class CAHPlugin(object):
             return
 
         standing = 0
+        if not self.game.scores:
+            self.cardinal.sendMsg(self.channel, "Nobody has any points!")
+            return
+
         for name, player in self.game.scores:
             standing += 1
             self.cardinal.sendMsg(self.channel,

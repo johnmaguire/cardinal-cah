@@ -11,7 +11,7 @@ from plugin import CAHPlugin
 
 class TestPlugin(object):
     def setup_method(self):
-        self.channel = '#channel'
+        self.channel = '#cah'
         self.player = 'player1'
         self.user = user_info(self.player, 'user', 'vhost')
 
@@ -19,10 +19,21 @@ class TestPlugin(object):
         self.mock_cardinal.nickname = 'Cardinal'
 
         self.plugin = CAHPlugin(self.mock_cardinal,
-                                {'channel': '#cah'})
+                                {'channel': self.channel})
 
         self.plugin.game = game.Game()
         self.plugin.game.add_player(self.player)
+
+    def test_play_wrong_channel(self):
+        channel = '#invalid-channel'
+        self.plugin.ready(self.mock_cardinal,
+                          self.user,
+                          channel,
+                          '.play')
+
+        self.mock_cardinal.sendMsg.assert_called_once_with(
+            channel,
+            "Please start the game in {}!".format(self.channel))
 
     def test_choose_waiting_in_pm(self):
         # when command sent in pm, respond in pm
