@@ -219,7 +219,7 @@ class CAHPlugin(object):
     def _kicked(self, cardinal, kicker, channel, kicked, _):
         """Remove kicked players from the game"""
         try:
-            self.remove_player(channel, kicked)
+            self.remove_player(kicked)
         except KeyError:
             return
 
@@ -227,7 +227,7 @@ class CAHPlugin(object):
     def _left(self, cardinal, leaver, channel, _):
         """Remove players who part from the game"""
         try:
-            self.remove_player(channel, leaver.nick)
+            self.remove_player(leaver.nick)
         except KeyError:
             return
 
@@ -236,7 +236,7 @@ class CAHPlugin(object):
         """Remove players who quit from the game"""
         for channel, _ in self.games.items():
             try:
-                self.remove_player(channel, quitter.nick)
+                self.remove_player(quitter.nick)
             except KeyError:
                 return
 
