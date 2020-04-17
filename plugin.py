@@ -218,6 +218,9 @@ class CAHPlugin(object):
     @event('irc.kick')
     def _kicked(self, cardinal, kicker, channel, kicked, _):
         """Remove kicked players from the game"""
+        if channel != self.channel:
+            return
+
         try:
             self.remove_player(kicked)
         except KeyError:
@@ -226,6 +229,9 @@ class CAHPlugin(object):
     @event('irc.part')
     def _left(self, cardinal, leaver, channel, _):
         """Remove players who part from the game"""
+        if channel != self.channel:
+            return
+
         try:
             self.remove_player(leaver.nick)
         except KeyError:
