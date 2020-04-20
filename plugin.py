@@ -1,9 +1,12 @@
 import logging
 import os
 
-import game
+from twisted.internet import defer
 
 from cardinal.decorators import command, event, help
+from cardinal.util import F
+
+import game
 
 # make sure game module is reloaded when the plugin is reloaded - don't do this
 # during test execution or assertions will fail
@@ -18,18 +21,22 @@ class CAHPlugin(object):
 
         self.channel = config['channel']
 
+        self.db = cardinal.get_db('cah')
+
         self.game = None
 
     @command('play')
     @help("Joins or starts a new Cardinals Against Humanity game")
     @help("Syntax: .play [max points]")
+    @defer.inlineCallbacks
     def play(self, cardinal, user, channel, msg):
         # Check if CAH is allowed here
         if channel != self.channel:
-            return cardinal.sendMsg(channel,
-                                    "Sorry, CAH isn't allowed here. Please "
-                                    "join {} to start a game."
-                                    .format(self.channel))
+            cardinal.sendMsg(channel,
+                             "Sorry, CAH isn't allowed here. Please "
+                             "join {} to start a game."
+                             .format(self.channel))
+            return
 
         # Attempt to get the game
         if not self.game:
@@ -65,6 +72,15 @@ class CAHPlugin(object):
             cardinal.sendMsg(
                 channel, "When you're ready to start the game, just say "
                          ".ready and we'll begin. Have fun and good luck!")
+
+            users = yield cardinal.who(self.channel)
+            self.logger.info("Users: {}".format(users))
+
+            nicks = [u.nick for u in users]
+            nicks.remove(user.nick)
+            cardinal.sendMsg(
+                channel, '{}: You in?'.format(', '.join(nicks)))
+
             return
 
         try:
@@ -221,6 +237,8 @@ class CAHPlugin(object):
         if channel != self.channel:
             return
 
+        name = leaver.nick
+
         try:
             self.remove_player(kicked)
         except KeyError:
@@ -232,18 +250,31 @@ class CAHPlugin(object):
         if channel != self.channel:
             return
 
+        name = leaver.nick
+
         try:
-            self.remove_player(leaver.nick)
+            self.remove_player(name)
         except KeyError:
             return
 
     @event('irc.quit')
     def _quit(self, cardinal, quitter, _):
         """Remove players who quit from the game"""
+        name = quitter.nick
+
         try:
-            self.remove_player(quitter.nick)
+            self.remove_player(name)
         except KeyError:
             return
+
+    def init_player(self, db, name):
+        if name not in db:
+            db[name] = {'wins': 0, 'losses': 0, 'quits': 0}
+
+    def log_quit(self, name):
+         with self.db() as db:
+             self.init_player(db, name)
+             db[name]['quits'] += 1
 
     def remove_player(self, player):
         """Removes a player from a channel's game.
@@ -258,6 +289,9 @@ class CAHPlugin(object):
 
         self.game.remove_player(player)
         self.cardinal.sendMsg(self.channel, "{} left the game!".format(player))
+
+        if initial_state not in (game.Game.STARTING, game.Game.OVER):
+            self.log_quit(name)
 
         # if game went from waiting pick to waiting choices, then this player
         # was the card czar.
@@ -280,7 +314,7 @@ class CAHPlugin(object):
         elif self.game.state == game.Game.OVER:
             self.cardinal.sendMsg(self.channel,
                                   "The game has ended due to lack of players.")
-            self.finish_game()
+            self.finish_game(by_default=True)
 
         # if the game didn't start and all players left, remove the game
         elif self.game.state == game.Game.STARTING and \
@@ -362,15 +396,54 @@ class CAHPlugin(object):
             self.cardinal.sendMsg(self.channel, "Nobody has any points!")
             return
 
-        for name, player in self.game.scores:
-            standing += 1
-            self.cardinal.sendMsg(self.channel,
-                                  "{}. {} - {} points"
-                                  .format(standing, name, player.points))
+        self.cardinal.sendMsg(self.channel,
+                              "#. Name - Points ({}/{}/{})".format(
+                                  F.C.light_green("Wins"),
+                                  F.C.light_red("Losses"),
+                                  F.C.grey("Quits"),
+                              ))
 
-    def finish_game(self):
+        with self.db() as db:
+            for name, player in self.game.scores:
+                self.init_player(db, name)
+
+                standing += 1
+                self.cardinal.sendMsg(self.channel,
+                                      "{}. {} - {} points ({}/{}/{})"
+                                      .format(
+                                          standing,
+                                          name,
+                                          player.points,
+                                          F.C.light_green(db[name]['wins']),
+                                          F.C.light_red(db[name]['losses']),
+                                          F.C.grey(db[name]['quits']),
+                                      ))
+
+    def finish_game(self, by_default=False):
         if not self.game:
             return
+
+        if not by_default:
+            # save game stats
+            try:
+                with self.db() as db:
+                    winner = True
+                    for name, player in self.game.scores:
+                        self.init_player(db, name)
+
+                        if winner:
+                            db[name]['wins'] += 1
+                        else:
+                            db[name]['losses'] += 1
+
+                        winner = False
+            except Exception:
+                self.logger.exception("Failure saving game stats")
+                self.cardinal.sendMsg(self.channel,
+                                      "I had an issue saving game stats. :(")
+        else:
+            self.cardinal.sendMsg(self.channel,
+                                  "Game stats will not be logged.")
 
         # log but continue ending the game if scores fail to send
         try:
@@ -379,6 +452,7 @@ class CAHPlugin(object):
             self.logger.exception("Failure sending scores")
             self.cardinal.sendMsg(self.channel,
                                   "I had an issue tallying up scores. :(")
+
 
         # Close the game cleanly - still let a new game begin if this fails for
         # some reason
