@@ -282,6 +282,13 @@ class CAHPlugin(object):
                                   "The game has ended due to lack of players.")
             self.finish_game()
 
+        # if the game didn't start and all players left, remove the game
+        elif self.game.state == game.Game.STARTING and \
+                not len(self.game.players):
+            self.cardinal.sendMsg(self.channel,
+                                  "All players left - there will be no game.")
+            self.game = None
+
     def show_hands(self):
         if not self.game:
             return
