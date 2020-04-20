@@ -27,7 +27,7 @@ A penny saved is %s.
 Never underestimate the power of %s.
 Don't bite the hand that %s.
 If at first you don't succeed, try %s.
-For my next trick I will pull a %s out of my ass.
-On a first date I %s. High five!
+For my next trick I will pull %s out of my ass.
+On a first date, I love %s.
 I need you like my body needs %s.
 Trust me, I'm %s.
