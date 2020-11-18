@@ -5,8 +5,8 @@ from cardinal.bot import (
     user_info,
 )
 
-import game
-from plugin import CAHPlugin
+from . import game
+from .plugin import CAHPlugin
 
 
 class TestPlugin(object):

@@ -1,3 +1,4 @@
+from imp import reload
 import logging
 import os
 
@@ -6,7 +7,7 @@ from twisted.internet import defer
 from cardinal.decorators import command, event, help
 from cardinal.util import F
 
-import game
+from . import game
 
 # make sure game module is reloaded when the plugin is reloaded - don't do this
 # during test execution or assertions will fail

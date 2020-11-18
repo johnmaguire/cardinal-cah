@@ -2,7 +2,7 @@ import copy
 
 import pytest
 
-from game import (
+from .game import (
     DEFAULT_HAND_SIZE,
     Game,
     InvalidMoveError,
