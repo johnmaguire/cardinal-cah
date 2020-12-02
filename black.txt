@@ -54,7 +54,7 @@ I do not know with which weapons World War III will be fought, but World War IV 
 What's Teach for America using to inspire inner city students to succeed?
 In Michael Jackson's final moments, he thought about %s.
 Why do I hurt all over?
-Studies show that lab rats navigate mazes 50% faster after being exposed to %s.
+Studies show that lab rats navigate mazes 50%% faster after being exposed to %s.
 Why am I sticky?
 What's my anti-drug?
 And the Academy Award for %s goes to %s.
