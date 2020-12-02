@@ -112,6 +112,11 @@ class CAHPlugin(object):
                                       ".play!")
             return
 
+        if user.nick not in self.game.players:
+            cardinal.sendMsg(channel, "Don't try to start a game you're not "
+                                      "playing!")
+            return
+
         try:
             self.game.ready()
         except game.InvalidMoveError:
