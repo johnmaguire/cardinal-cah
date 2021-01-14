@@ -27,7 +27,7 @@ class CAHPlugin(object):
         self.game = None
 
     @command('play')
-    @help("Joins or starts a new Cardinals Against Humanity game")
+    @help("Joins or starts a new Cardinal Against Humanity game [CAH]")
     @help("Syntax: .play [max points]")
     @defer.inlineCallbacks
     def play(self, cardinal, user, channel, msg):
@@ -99,7 +99,7 @@ class CAHPlugin(object):
         ])))
 
     @command(['ready', 'start'])
-    @help("Begin the CAH game!")
+    @help("Begin the CAH game! [CAH]")
     @help('Syntax: .ready/.start')
     def ready(self, cardinal, user, channel, msg):
         if channel != self.channel:
@@ -135,7 +135,7 @@ class CAHPlugin(object):
         self.show_hands()
 
     @command(['choose', 'c'])
-    @help("Choose cards to play")
+    @help("Choose cards to play [CAH]")
     @help("Syntax: .choose <choice [choice, [..]]>")
     def choose(self, cardinal, user, channel, msg):
         """Play a card or card combination"""
@@ -222,7 +222,7 @@ class CAHPlugin(object):
             self.finish_game()
 
     @command('score')
-    @help("Give Cards Against Humanity score")
+    @help("Show the current score [CAH]")
     @help("Syntax: .score")
     def score(self, cardinal, user, channel, msg):
         if channel != self.channel:
