@@ -282,7 +282,7 @@ class CAHPlugin(object):
              self.init_player(db, name)
              db[name]['quits'] += 1
 
-    def remove_player(self, player):
+    def remove_player(self, name):
         """Removes a player from a channel's game.
 
         Raises:
@@ -293,8 +293,8 @@ class CAHPlugin(object):
 
         initial_state = self.game.state
 
-        self.game.remove_player(player)
-        self.cardinal.sendMsg(self.channel, "{} left the game!".format(player))
+        self.game.remove_player(name)
+        self.cardinal.sendMsg(self.channel, "{} left the game!".format(name))
 
         if initial_state not in (game.Game.STARTING, game.Game.OVER):
             self.log_quit(name)
@@ -305,7 +305,7 @@ class CAHPlugin(object):
                 self.game.state == game.Game.WAITING_CHOICES):
             self.cardinal.sendMsg(self.channel,
                                   "Round skipped since {} was supposed to "
-                                  "pick a winner.".format(player))
+                                  "pick a winner.".format(name))
 
             self.show_black_card()
             self.show_hands()
