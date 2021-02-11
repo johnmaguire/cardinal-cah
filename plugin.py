@@ -476,5 +476,4 @@ class CAHPlugin(object):
             self.game.close()
 
 
-def setup(cardinal, config):
-    return CAHPlugin(cardinal, config)
+entrypoint = CAHPlugin
