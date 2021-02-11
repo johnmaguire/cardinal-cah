@@ -9,7 +9,7 @@ from . import game
 from .plugin import CAHPlugin
 
 
-class TestPlugin(object):
+class TestPlugin:
     def setup_method(self):
         self.channel = '#cah'
         self.player = 'player1'

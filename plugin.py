@@ -15,7 +15,7 @@ if "PYTEST" not in os.environ:
     reload(game)
 
 
-class CAHPlugin(object):
+class CAHPlugin:
     def __init__(self, cardinal, config):
         self.logger = logging.getLogger(__name__)
         self.cardinal = cardinal

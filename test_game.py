@@ -11,7 +11,7 @@ from .game import (
 )
 
 
-class TestPlayer(object):
+class TestPlayer:
     def setup_method(self):
         self.game = Game()
 

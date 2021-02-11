@@ -28,7 +28,7 @@ class NotEnoughPlayersError(Exception):
     pass
 
 
-class Player(object):
+class Player:
     WAITING = 1
     CHOOSING = 2
     PICKING = 3
@@ -85,7 +85,7 @@ class Player(object):
         self.state = Player.WAITING
 
 
-class Game(object):
+class Game:
     STARTING = 1
     WAITING_CHOICES = 2
     WAITING_PICK = 3
